@@ -1,6 +1,7 @@
 import json
 import pandas as pd
 from sklearn import preprocessing
+import numpy as np
 
 def json_to_csv(path_to_json):
     devices = json.load(open(path_to_json, 'rb'))
@@ -65,9 +66,12 @@ def json_to_csv(path_to_json):
     specs.remove('featuresList')
 
     feats = []
+    feats_description = []
     for features in features_list:
         for i in range(len(features)):
-            feats.append(features[i]['featuretitle'])
+            if features[i]['featuretitle'] not in feats:
+                feats.append(features[i]['featuretitle'])
+                feats_description.append(features[i]['longdescription'])
 
     for prod in products:
         all_features = products[prod]['featuresList']
@@ -89,12 +93,33 @@ def json_to_csv(path_to_json):
 
     for prod in products:
         df = df.append(products[prod], ignore_index=True)
+        df.to_csv('data/devices.csv')
 
-    df.to_csv('data/devices.csv')
+    feats = np.array(feats)
+    feats_description = np.array(feats_description)
+
+    features = np.vstack((feats, feats_description)).T
+
+    feature_df = pd.DataFrame(features, columns=['feature', 'description'])
+    feature_df.to_csv('data/features.csv')
+
+    df = pd.read_csv('data/devices.csv')
+
+    preprocess_data(df)
+
 
 
 def preprocess_data(df):
-    to_drop = ['displayName', 'Unnamed: 0', 'memoryMap', 'marketingContent']
+    to_drop = ['Unnamed: 0', 'memoryMap', 'marketingContent',
+               'exclusiveOfferDevicePrice', 'maxDeviceBalWaiverAmnt',
+               'connectionFee', 'exclusiveOfferPresent', 'bogoOfferPresent',
+               'fidoFave', 'gwpOffersPresent', 'deviceEligibleForExpShip',
+               'rvAmount', 'sortOrder', 'saleStatus', 'size',
+               'lowestMSFByCategory', 'deviceTerm', 'noTermPrice', 'strikePrice',
+               'financingAmount', 'mandatoryPayment', 'defaultLowestMSF',
+               'limitedOfferPresent', 'defaultPricePlanCategory',
+               'monthlyInstallmentAmount', 'installments', 'financing', 'color',
+               'price']
     for drop in to_drop:
         df.drop(drop, axis=1, inplace=True)
 
@@ -105,15 +130,18 @@ def preprocess_data(df):
         if 'mm' in row['memory']:
             df.drop(index, inplace=True)
 
-    feats_to_encode = ['color', 'defaultPricePlanCategory']
-    le_dict = {}
+    # feats_to_encode = ['color', 'defaultPricePlanCategory',
+    #                    'limitedOfferPresent', 'financing']
+    # le_dict = {}
+    #
+    # for feat in feats_to_encode:
+    #     le = preprocessing.LabelEncoder()
+    #     xformed_data = le.fit_transform(df[feat])
+    #     df[feat] = xformed_data
+    #     le_dict[feat] = le
 
-    for feat in feats_to_encode:
-        le = preprocessing.LabelEncoder()
-        xformed_data = le.fit_transform(df[feat])
-        df[feat] = xformed_data
-        le_dict[feat] = le
+    df = df.fillna(0)
 
-
+    df.to_csv('data/devices_preprocessed.csv')
 
     return df
