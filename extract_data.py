@@ -10,6 +10,8 @@ def json_to_csv(path_to_json):
     features_list = []
     specs = []
 
+
+
     for k in devices['devicesMap']:
         model_map = devices['devicesMap'][k]['modelMap']
         for prod in model_map.keys():
@@ -130,6 +132,22 @@ def preprocess_data(df):
         if 'mm' in row['memory']:
             df.drop(index, inplace=True)
 
+    unique_mem = list(set(list(df['memory'])))
+
+    unique_mem = [str(ele) + ' GB' for ele in unique_mem]
+
+    for mem in unique_mem:
+        df[mem] = pd.Series()
+
+    df = df.reset_index()
+
+    df.drop('index', inplace=True, axis=1)
+
+    for index, row in df.iterrows():
+        df.ix[index, '{} GB'.format(row['memory'])] = 1
+
+    df.drop('memory', inplace=True, axis=1)
+
     # feats_to_encode = ['color', 'defaultPricePlanCategory',
     #                    'limitedOfferPresent', 'financing']
     # le_dict = {}
@@ -141,6 +159,10 @@ def preprocess_data(df):
     #     le_dict[feat] = le
 
     df = df.fillna(0)
+
+    # for index, row in df.iterrows():
+    #     if 'blackberry' in row['displayName'].lower():
+    #         df.drop(index, inplace=True)
 
     df.to_csv('data/devices_preprocessed.csv')
 
